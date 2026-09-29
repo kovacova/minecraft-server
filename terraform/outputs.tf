@@ -7,8 +7,13 @@ output "backup_bucket" {
 }
 
 output "address" {
-  description = "Changes every time the server starts; the Discord bot should report it"
-  value       = "${aws_instance.server.public_ip}:25565"
+  description = "The server's fixed address. Put this in Minecraft"
+  value       = "${aws_eip.server.public_ip}:25565"
+}
+
+output "discord_bot_url" {
+  description = "Paste into Discord: Developer Portal → your app → General Information → Interactions Endpoint URL"
+  value       = local.bot == 1 ? aws_apigatewayv2_api.bot[0].api_endpoint : "(set discord_public_key in terraform.tfvars first)"
 }
 
 output "shell" {

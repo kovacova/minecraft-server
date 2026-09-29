@@ -4,3 +4,4 @@
 *.py    text eol=lf
 *.tftpl text eol=lf
 server/mc text eol=lf
+bot/*.ps1 text eol=crlf

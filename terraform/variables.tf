@@ -55,3 +55,9 @@ variable "accept_minecraft_eula" {
   type        = bool
   default     = false
 }
+
+variable "discord_public_key" {
+  description = "Discord Developer Portal → your app → General Information → Public Key. Not a secret"
+  type        = string
+  default     = ""
+}

@@ -4,6 +4,8 @@ A Java Minecraft server on AWS that costs almost nothing when nobody is playing.
 It lives in its own AWS account, in Montreal (`ca-central-1`), and turns itself off
 after 15 minutes with no players online.
 
+> **Step-by-step guides:** [1. A fixed address](docs/1-static-ip.md) · [2. The Discord bot](docs/2-discord-bot.md)
+
 This README explains *why* as well as *how*. Read the why, because it's the part that
 transfers to every other cloud project.
 
@@ -107,8 +109,8 @@ The old world is backed up by the stop, then kept beside the new one as `*.befor
 
 | I want to… | Do this |
 |---|---|
-| Start it | `aws ec2 start-instances --instance-ids $(tofu output -raw instance_id) --profile minecraft` |
-| Find the address | `tofu refresh && tofu output address`. It changes every start. |
+| Start it | `/start` in Discord ([Part 2](docs/2-discord-bot.md)), or `aws ec2 start-instances --instance-ids $(tofu output -raw instance_id) --profile minecraft` |
+| Find the address | `tofu output address`. After [Part 1](docs/1-static-ip.md) it never changes. |
 | Whitelist a friend | Server shell: `sudo mc whitelist add Name` (or in-game as op: `/whitelist add Name`) |
 | Make yourself op | Server shell: `sudo mc op YourName` |
 | Who's online? | Server shell: `sudo mc list` |
@@ -120,12 +122,8 @@ The old world is backed up by the stop, then kept beside the new one as `*.befor
 
 In rough order. Each is a real skill, not busywork.
 
-1. **Discord `/start`.** A Discord slash command, served by an AWS Lambda behind a
-   Function URL, that verifies Discord's Ed25519 signature, calls `ec2:StartInstances`,
-   and replies with the new IP. Give the Lambda's role permission for **this one
-   instance only**. That's least privilege, and it's the core IAM lesson.
-2. **Stable address.** The IP changes every start. Options: an Elastic IP ($3.65/mo
-   even while stopped), or the Lambda updating a Route 53 record. Compare the costs.
+1. **Discord `/start`.** Done: [guide](docs/2-discord-bot.md).
+2. **Stable address.** Done: [guide](docs/1-static-ip.md).
 3. **Remote Terraform state.** Your state file is on your laptop. Move it to an S3
    backend with locking, so two people can run `apply` without corrupting it.
 4. **CloudWatch.** Alarm on the instance running for more than 6 hours, and send

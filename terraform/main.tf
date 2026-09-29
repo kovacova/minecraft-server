@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -101,6 +105,10 @@ resource "aws_volume_attachment" "world" {
   device_name = "/dev/sdf"
   volume_id   = aws_ebs_volume.world.id
   instance_id = aws_instance.server.id
+
+  # Stop the server cleanly (Minecraft saves, backup runs) before the world
+  # disk is pulled out, e.g. when a change means the server is rebuilt.
+  stop_instance_before_detaching = true
 }
 
 resource "aws_s3_bucket" "backups" {
