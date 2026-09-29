@@ -2,19 +2,16 @@
 
 For any AI agent (or person) changing this repo. Read it all before changing anything.
 
-## What this is, and who it's for
+## What this is
 
-A Java Minecraft server on AWS for two siblings: Tina (Mac, in BC, Canada) and her
-younger brother, "Lil Bro" (Windows, in Slovakia). He's a CS student, and this is
-his learning project. **He does the engineering; we make it possible and
-understandable.** He deployed it himself on day one by reading the code, and that's
-the spirit to protect.
+A Java Minecraft server on AWS, built with OpenTofu. The people using it are on
+**Windows and Mac**, and the guides in `docs/` are written for someone new to AWS.
 
 ## The rules
 
 ### This repo is public
 - **Never commit** AWS account IDs, account names, the SSO portal URL, anyone's email,
-  Discord tokens, or real names beyond "Lil Bro". Those stay in the owner's private notes.
+  Discord tokens, or anyone's real name. Those stay private.
 - `*.tfvars`, `*.tfstate` and `.terraform/` are gitignored and must stay that way. Settings
   and state are personal.
 - Before every push, grep the diff for secrets and 12-digit account numbers.
@@ -26,12 +23,10 @@ the spirit to protect.
 - Anything that runs on the server must keep **LF line endings** (`.gitattributes`). Git for
   Windows would otherwise add `\r`, and bash breaks on first boot. `*.ps1` stays CRLF.
 
-### Guides are for a learner, and short
-- Numbered steps, one action each, with a **✅ Check:** after each step so he knows it worked.
-- Explain *why* in one line, not a paragraph. Tina's words: "even that repo readme was A
-  LOT". He was mildly overwhelmed, then did it anyway. Less is more.
-- End with **"Ideas for later"**, questions and hints rather than answers. Leave him
-  things to build. Don't build all of them for him.
+### Guides are short
+- Numbered steps, one action each, with a **✅ Check:** after each step.
+- Explain *why* in one line, not a paragraph. Short beats complete.
+- End with **"Ideas for later"**: open questions and hints.
 - New guides go in `docs/N-name.md`, and are linked from the README and from the previous guide's "Next".
 
 ### The world is sacred
@@ -85,7 +80,7 @@ guardrail, not a bug. Suggest widening to the owner. Don't work around it.
 - **Never call `/start`, `StartInstances` or anything else with side effects against the
   real account while testing.** A test once started the real server by accident. Use
   `--dry-run`, read-only calls, or mocks.
-- A real deploy is Lil Bro's `tofu apply`. Say plainly what was and wasn't tested.
+- The real test is a `tofu apply` by the account's user. Say plainly what was and wasn't tested.
 
 ## Commits
 
