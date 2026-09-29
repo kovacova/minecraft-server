@@ -112,3 +112,5 @@ start yours. It would only cost cents and it turns itself off, but still.
 - A `/stop` command. You'd have to give the bot one more permission. Where?
 - Make `/status` say *who* is online. Hint: the server already knows (`sudo mc list`).
 - Have the bot post in a channel when the server shuts itself down.
+
+**Next:** [Part 3: more than one world](3-multiple-worlds.md)

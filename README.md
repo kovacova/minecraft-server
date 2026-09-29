@@ -4,7 +4,7 @@ A Java Minecraft server on AWS that costs almost nothing when nobody is playing.
 It lives in its own AWS account, in Montreal (`ca-central-1`), and turns itself off
 after 15 minutes with no players online.
 
-> **Step-by-step guides:** [1. A fixed address](docs/1-static-ip.md) · [2. The Discord bot](docs/2-discord-bot.md)
+> **Step-by-step guides:** [1. A fixed address](docs/1-static-ip.md) · [2. The Discord bot](docs/2-discord-bot.md) · [3. More than one world](docs/3-multiple-worlds.md)
 
 This README explains *why* as well as *how*. Read the why, because it's the part that
 transfers to every other cloud project.
