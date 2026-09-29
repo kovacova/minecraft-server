@@ -11,14 +11,23 @@ transfers to every other cloud project.
 
 ## What's already true about the account
 
-The organization's management account puts **guardrails** (a Service Control Policy) on
-the Minecraft account. You're a full admin, but the policy sits above admin. Inside this account
-nobody, root included, can:
+You're a **full admin** in the Minecraft account. In Montreal (`ca-central-1`) you can
+build anything: Lambda, API Gateway, DynamoDB, S3, IAM roles and policies, CloudWatch,
+SQS/SNS, EventBridge, containers, databases, servers.
+
+The organization's management account puts **guardrails** (a Service Control Policy)
+above that. Admin can't override them, and neither can root. Nobody in this account can:
 
 - use any region except `ca-central-1`
 - launch anything except ARM (Graviton) instances up to `xlarge` (16 GB)
 - buy reserved capacity, savings plans, Marketplace products or domains
 - leave the organization or close the account
+
+A few AWS services only answer from US East, even for a Montreal account, so the region
+rule has exceptions for them: IAM, STS, listing S3 buckets and regions, certificates
+(ACM, for CloudFront), KMS, CloudFront, Route 53, CloudWatch reads, pricing, billing
+and support. If something is refused with an *explicit deny in a service control
+policy*, that's the guardrail, not your IAM. Ask for it to be widened if it's reasonable.
 
 Budget alerts email the owner at $10 and $25 a month. Break whatever you like. The walls hold.
 
@@ -52,8 +61,15 @@ Decisions worth understanding:
 
 ## First-time setup (laptop)
 
+Install the tools, then **open a new terminal window** so it finds them:
+
+| Windows (PowerShell) | Mac (Terminal) |
+|---|---|
+| `winget install Amazon.AWSCLI OpenTofu.Tofu Git.Git Amazon.SessionManagerPlugin` | `brew install awscli opentofu git`<br>`brew install --cask session-manager-plugin` |
+
+Then, the same on both:
+
 ```bash
-brew install awscli opentofu      # Mac. Windows: winget install Amazon.AWSCLI OpenTofu.Tofu
 aws configure sso                 # start URL: the sign-in link from the invite email
                                   # region: ca-central-1, account: the Minecraft one,
                                   # role: the admin one, profile name: minecraft
@@ -61,11 +77,21 @@ aws sso login --profile minecraft
 aws sts get-caller-identity --profile minecraft   # should name the Minecraft account
 ```
 
+Most commands below are identical in PowerShell and Mac Terminal. Where they differ,
+both are shown. Commands marked **server shell** run on the server (Linux), so
+they're the same whoever types them.
+
 ## Deploy
 
+Make your settings file and open it (version, EULA line):
+
+| Windows | Mac |
+|---|---|
+| `cd terraform`<br>`copy example.tfvars terraform.tfvars`<br>`notepad terraform.tfvars` | `cd terraform`<br>`cp example.tfvars terraform.tfvars`<br>`open -e terraform.tfvars` |
+
+Then, the same on both:
+
 ```bash
-cd terraform
-cp example.tfvars terraform.tfvars   # edit it: version, and the EULA line
 tofu init
 tofu plan      # READ THIS. It lists every resource it will create.
 tofu apply
@@ -80,10 +106,15 @@ set by default.
 
 First boot takes ~3 minutes (installs Java, downloads the server). Watch it:
 
+Open a **server shell** (from the `terraform` folder):
+
+| Windows | Mac |
+|---|---|
+| `Invoke-Expression (tofu output -raw shell)` | `eval "$(tofu output -raw shell)"` |
+
+Then, in the server shell:
+
 ```bash
-tofu output shell        # prints the command that opens a shell on the server; run it
-                                               # (needs the Session Manager plugin:
-                                               #  winget install Amazon.SessionManagerPlugin)
 sudo tail -f /var/log/minecraft-setup.log      # cloud-init
 sudo journalctl -u minecraft -f                # the server itself
 ```
@@ -93,12 +124,19 @@ sudo journalctl -u minecraft -f                # the server itself
 On your PC, the world is a folder in `%APPDATA%\.minecraft\saves\` (Windows) or
 `~/Library/Application Support/minecraft/saves/` (Mac). Close Minecraft first, then:
 
-1. Zip the world folder itself, the one with `level.dat` inside, e.g. `MyWorld.zip`.
-2. Upload it:
-   ```bash
-   aws s3 cp MyWorld.zip s3://$(tofu output -raw backup_bucket)/import/ --profile minecraft
-   ```
-3. On the server:
+1. Zip the world folder itself, the one with `level.dat` inside:
+
+   | Windows | Mac |
+   |---|---|
+   | `tar -a -c -f "$HOME\Desktop\MyWorld.zip" -C "$env:APPDATA\.minecraft\saves" "My World"` | `cd ~/Library/Application\ Support/minecraft/saves`<br>`zip -r ~/Desktop/MyWorld.zip "My World"` |
+
+2. Upload it (from the `terraform` folder):
+
+   | Windows | Mac |
+   |---|---|
+   | `aws s3 cp "$HOME\Desktop\MyWorld.zip" "s3://$(tofu output -raw backup_bucket)/import/" --profile minecraft` | `aws s3 cp ~/Desktop/MyWorld.zip "s3://$(tofu output -raw backup_bucket)/import/" --profile minecraft` |
+
+3. In the server shell:
    ```bash
    sudo import-world.sh MyWorld.zip
    ```
@@ -109,13 +147,13 @@ The old world is backed up by the stop, then kept beside the new one as `*.befor
 
 | I want to… | Do this |
 |---|---|
-| Start it | `/start` in Discord ([Part 2](docs/2-discord-bot.md)), or `aws ec2 start-instances --instance-ids $(tofu output -raw instance_id) --profile minecraft` |
+| Start it | `/start` in Discord ([Part 2](docs/2-discord-bot.md)), or `aws ec2 start-instances --instance-ids "$(tofu output -raw instance_id)" --profile minecraft` (Windows and Mac) |
 | Find the address | `tofu output address`. After [Part 1](docs/1-static-ip.md) it never changes. |
 | Whitelist a friend | Server shell: `sudo mc whitelist add Name` (or in-game as op: `/whitelist add Name`) |
 | Make yourself op | Server shell: `sudo mc op YourName` |
 | Who's online? | Server shell: `sudo mc list` |
 | Stop it now | Just leave. It stops itself 15 min after the last player does. |
-| Back up now | `sudo mc-backup.sh` |
+| Back up now | Server shell: `sudo mc-backup.sh` |
 | Restore | Download a `backups/*.tar.gz` from S3, stop the service, untar into `/srv/minecraft`, start. **Test this once before you need it.** |
 
 ## Your roadmap

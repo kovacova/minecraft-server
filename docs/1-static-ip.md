@@ -13,9 +13,9 @@ just turn it on.
 
 ### Step 1: Get the new code
 
-In PowerShell, in the `minecraft-server` folder:
+In the `minecraft-server` folder. These are the same in PowerShell (Windows) and Terminal (Mac):
 
-```powershell
+```bash
 git pull
 cd terraform
 tofu init
@@ -27,7 +27,7 @@ tofu init
 
 ### Step 2: Fix the EULA line (if you haven't)
 
-Open `terraform.tfvars` in Notepad. Make sure this line has **no `#`** in front:
+Open `terraform.tfvars` (Windows: `notepad terraform.tfvars`, Mac: `open -e terraform.tfvars`). Make sure this line has **no `#`** in front:
 
 ```
 accept_minecraft_eula = true
@@ -35,7 +35,7 @@ accept_minecraft_eula = true
 
 ### Step 3: Apply
 
-```powershell
+```bash
 tofu apply
 ```
 
@@ -53,7 +53,7 @@ Type `yes`.
 
 ### Step 4: Get your address
 
-```powershell
+```bash
 tofu output address
 ```
 

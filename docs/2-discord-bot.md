@@ -35,17 +35,18 @@ The code is already written. You're connecting the pieces.
 ### Step 2: Give AWS the public key
 
 1. On General Information, copy the **Public Key**. It's not a secret.
-2. Open `terraform\terraform.tfvars` in Notepad and add:
+2. Open `terraform.tfvars` in the `terraform` folder (Windows: `notepad terraform.tfvars`,
+   Mac: `open -e terraform.tfvars`) and add:
    ```
    discord_public_key = "paste-it-here"
    ```
-3. Save, then in PowerShell:
-   ```powershell
+3. Save, then (same on Windows and Mac):
+   ```bash
    tofu apply
    ```
    It shows the bot pieces as **will be created**. Type `yes`.
 4. Get the bot's web address:
-   ```powershell
+   ```bash
    tofu output discord_bot_url
    ```
 
@@ -73,12 +74,11 @@ then `tofu apply` again.*
 
 ### Step 5: Teach Discord the commands
 
-This tells Discord that `/start` and `/status` exist. In PowerShell, from the
-`minecraft-server` folder:
+This tells Discord that `/start` and `/status` exist. From the `minecraft-server` folder:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File bot\register-commands.ps1
-```
+| Windows (PowerShell) | Mac (Terminal) |
+|---|---|
+| `powershell -ExecutionPolicy Bypass -File bot\register-commands.ps1` | `bash bot/register-commands.sh` |
 
 It asks for two things:
 
@@ -101,7 +101,7 @@ In any channel of your Discord, type `/status`, then `/start`.
 | What you see | What it means |
 |---|---|
 | "The application did not respond" | The bot crashed or timed out. See its logs: AWS console → **Lambda** → `minecraft-discord-bot` → **Monitor** → **View CloudWatch logs**. |
-| The commands don't show up | Restart Discord (Ctrl+R). Commands can take a minute to appear. |
+| The commands don't show up | Reload Discord (Windows: Ctrl+R, Mac: Cmd+R). Commands can take a minute to appear. |
 | "Interactions Endpoint URL could not be verified" | The public key doesn't match. Check Step 2. |
 
 **Don't share the Install Link.** Anyone who adds the bot to their own server could

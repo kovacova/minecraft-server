@@ -56,8 +56,15 @@ zip -r ~/Desktop/hidden-layers.zip "Hidden Layers"
 ## Step 2: Upload it
 
 **From the command line** (in the `terraform` folder):
+
+Windows:
 ```powershell
 aws s3 cp "$HOME\Desktop\myworld.zip" "s3://$(tofu output -raw backup_bucket)/import/" --profile minecraft
+```
+
+Mac:
+```bash
+aws s3 cp ~/Desktop/hidden-layers.zip "s3://$(tofu output -raw backup_bucket)/import/" --profile minecraft
 ```
 
 **Or by drag and drop** (easier for someone without the command line set up):
@@ -68,13 +75,13 @@ AWS console → **S3** → the `minecraft-backups-…` bucket → open (or creat
 
 ## Step 3: Put it on the server
 
-Make sure the server is on (`/start` in Discord), then open the server shell:
+Make sure the server is on (`/start` in Discord), then open the server shell from the `terraform` folder:
 
-```powershell
-Invoke-Expression (tofu output -raw shell)
-```
+| Windows | Mac |
+|---|---|
+| `Invoke-Expression (tofu output -raw shell)` | `eval "$(tofu output -raw shell)"` |
 
-In the server shell:
+In the server shell (the same for everyone, since it's Linux):
 
 ```bash
 sudo import-world.sh myworld.zip
