@@ -79,7 +79,9 @@ set by default.
 First boot takes ~3 minutes (installs Java, downloads the server). Watch it:
 
 ```bash
-$(tofu output -raw shell)                      # opens a shell on the server
+tofu output shell        # prints the command that opens a shell on the server; run it
+                                               # (needs the Session Manager plugin:
+                                               #  winget install Amazon.SessionManagerPlugin)
 sudo tail -f /var/log/minecraft-setup.log      # cloud-init
 sudo journalctl -u minecraft -f                # the server itself
 ```
@@ -107,8 +109,9 @@ The old world is backed up by the stop, then kept beside the new one as `*.befor
 |---|---|
 | Start it | `aws ec2 start-instances --instance-ids $(tofu output -raw instance_id) --profile minecraft` |
 | Find the address | `tofu refresh && tofu output address`. It changes every start. |
-| Whitelist a friend | In the server shell: `sudo -u minecraft` … or in-game as op: `/whitelist add Name` |
-| Make yourself op | Server shell, then send `op YourName` over RCON, or add it to `ops.json` while stopped |
+| Whitelist a friend | Server shell: `sudo mc whitelist add Name` (or in-game as op: `/whitelist add Name`) |
+| Make yourself op | Server shell: `sudo mc op YourName` |
+| Who's online? | Server shell: `sudo mc list` |
 | Stop it now | Just leave. It stops itself 15 min after the last player does. |
 | Back up now | `sudo mc-backup.sh` |
 | Restore | Download a `backups/*.tar.gz` from S3, stop the service, untar into `/srv/minecraft`, start. **Test this once before you need it.** |

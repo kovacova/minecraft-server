@@ -4,7 +4,7 @@
 set -euxo pipefail
 exec > >(tee /var/log/minecraft-setup.log) 2>&1
 
-dnf install -y java-21-amazon-corretto-headless unzip
+dnf install -y unzip
 
 # ---- the world disk: wait for it, format it only if it is blank, mount it
 serial="$(echo '${world_volume_id}' | tr -d '-')"
@@ -20,22 +20,30 @@ mount -a
 id minecraft || useradd --system --home /srv/minecraft --shell /sbin/nologin minecraft
 cd /srv/minecraft
 
-# ---- the server jar (kept on the world disk, so a rebuild reuses it)
-if [ ! -f server.jar ]; then
-  if [ -n '${server_jar_url}' ]; then
-    curl -fsSL -o server.jar '${server_jar_url}'
-  else
-    python3 - '${minecraft_version}' <<'PY'
-import json, sys, urllib.request
+# ---- the server jar, and the Java it needs
+# Mojang publishes which Java each release requires (26.x needs 25), so it is
+# read from there rather than guessed. The jar lives on the world disk; it is
+# downloaded again only when minecraft_version changes.
+java_major="$(python3 - '${minecraft_version}' '${server_jar_url}' <<'PY'
+import json, os, sys, urllib.request
 get = lambda u: json.load(urllib.request.urlopen(u))
 m = get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
 want = m["latest"]["release"] if sys.argv[1] == "latest" else sys.argv[1]
-v = next(x for x in m["versions"] if x["id"] == want)
-urllib.request.urlretrieve(get(v["url"])["downloads"]["server"]["url"], "server.jar")
-print("downloaded", want)
+v = get(next(x for x in m["versions"] if x["id"] == want)["url"])
+have = open(".mc-version").read().strip() if os.path.exists(".mc-version") else ""
+if not sys.argv[2] and (have != want or not os.path.exists("server.jar")):
+    urllib.request.urlretrieve(v["downloads"]["server"]["url"], "server.jar")
+    open(".mc-version", "w").write(want)
+    print("downloaded", want, file=sys.stderr)
+print(v["javaVersion"]["majorVersion"])
 PY
-  fi
+)"
+if [ -n '${server_jar_url}' ] && [ ! -f server.jar ]; then
+  curl -fsSL -o server.jar '${server_jar_url}'
 fi
+dnf install -y "java-$${java_major}-amazon-corretto-headless"
+java_bin="/usr/lib/jvm/java-$${java_major}-amazon-corretto/bin/java"
+"$java_bin" -version
 
 # Minecraft will not start until its EULA is accepted. That is a person's decision,
 # made in terraform.tfvars, not something this script does on anyone's behalf.
@@ -66,7 +74,10 @@ BACKUP
 cat > /usr/local/bin/import-world.sh <<'IMPORT'
 ${import_sh}
 IMPORT
-chmod 755 /usr/local/bin/mc-watch.py /usr/local/bin/mc-backup.sh /usr/local/bin/import-world.sh
+cat > /usr/local/bin/mc <<'MC'
+${mc_py}
+MC
+chmod 755 /usr/local/bin/mc /usr/local/bin/mc-watch.py /usr/local/bin/mc-backup.sh /usr/local/bin/import-world.sh
 cat > /etc/minecraft.env <<EOF
 BACKUP_BUCKET=${backup_bucket}
 IDLE_MINUTES=${idle_minutes}
@@ -85,7 +96,7 @@ RequiresMountsFor=/srv/minecraft
 User=minecraft
 WorkingDirectory=/srv/minecraft
 EnvironmentFile=/etc/minecraft.env
-ExecStart=/usr/bin/java -Xms${memory_gb}G -Xmx${memory_gb}G -XX:+UseG1GC -jar server.jar nogui
+ExecStart=$java_bin -Xms${memory_gb}G -Xmx${memory_gb}G -XX:+UseG1GC -jar server.jar nogui
 # Java saves the world on SIGTERM; give it time, then back up while the network is still up.
 TimeoutStopSec=300
 ExecStopPost=+/usr/local/bin/mc-backup.sh

@@ -195,6 +195,7 @@ resource "aws_instance" "server" {
     watch_py          = file("${path.module}/../server/mc-watch.py")
     backup_sh         = file("${path.module}/../server/mc-backup.sh")
     import_sh         = file("${path.module}/../server/import-world.sh")
+    mc_py             = file("${path.module}/../server/mc")
   })
   user_data_replace_on_change = true
 
