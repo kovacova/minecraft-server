@@ -1,0 +1,5 @@
+# These files run on Linux. Git for Windows would otherwise check them out with
+# CRLF line endings, and bash fails on the stray \r.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.tftpl text eol=lf
