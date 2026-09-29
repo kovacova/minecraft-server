@@ -51,7 +51,7 @@ Decisions worth understanding:
 ## First-time setup (laptop)
 
 ```bash
-brew install awscli opentofu      # or terraform; the commands are identical
+brew install awscli opentofu      # Mac. Windows: winget install Amazon.AWSCLI OpenTofu.Tofu
 aws configure sso                 # start URL: the sign-in link from the invite email
                                   # region: ca-central-1, account: the Minecraft one,
                                   # role: the admin one, profile name: minecraft
