@@ -7,6 +7,9 @@ For any AI agent (or person) changing this repo. Read it all before changing any
 A Java Minecraft server on AWS, built with OpenTofu. The people using it are on
 **Windows and Mac**, and the guides in `docs/` are written for someone new to AWS.
 
+**Optimise for learning and simple instructions.** Understanding how it works matters
+more than finishing fast, and a short clear step beats a complete one.
+
 ## The rules
 
 ### This repo is public
