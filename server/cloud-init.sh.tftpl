@@ -1,0 +1,119 @@
+#!/bin/bash
+# Runs once, on the server's first boot. Rendered by Terraform's templatefile():
+# in the .tftpl source, a shell variable is escaped with a double dollar sign.
+set -euxo pipefail
+exec > >(tee /var/log/minecraft-setup.log) 2>&1
+
+dnf install -y java-21-amazon-corretto-headless unzip
+
+# ---- the world disk: wait for it, format it only if it is blank, mount it
+serial="$(echo '${world_volume_id}' | tr -d '-')"
+dev="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_$${serial}"
+for _ in $(seq 60); do [ -e "$dev" ] && break; sleep 5; done
+[ -e "$dev" ] || { echo "world disk never attached"; exit 1; }
+blkid "$dev" || mkfs.xfs "$dev"
+mkdir -p /srv/minecraft
+uuid="$(blkid -s UUID -o value "$dev")"
+grep -q "$uuid" /etc/fstab || echo "UUID=$uuid /srv/minecraft xfs defaults,nofail 0 2" >> /etc/fstab
+mount -a
+
+id minecraft || useradd --system --home /srv/minecraft --shell /sbin/nologin minecraft
+cd /srv/minecraft
+
+# ---- the server jar (kept on the world disk, so a rebuild reuses it)
+if [ ! -f server.jar ]; then
+  if [ -n '${server_jar_url}' ]; then
+    curl -fsSL -o server.jar '${server_jar_url}'
+  else
+    python3 - '${minecraft_version}' <<'PY'
+import json, sys, urllib.request
+get = lambda u: json.load(urllib.request.urlopen(u))
+m = get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
+want = m["latest"]["release"] if sys.argv[1] == "latest" else sys.argv[1]
+v = next(x for x in m["versions"] if x["id"] == want)
+urllib.request.urlretrieve(get(v["url"])["downloads"]["server"]["url"], "server.jar")
+print("downloaded", want)
+PY
+  fi
+fi
+
+# Minecraft will not start until its EULA is accepted. That is a person's decision,
+# made in terraform.tfvars, not something this script does on anyone's behalf.
+echo "eula=${accept_eula}" > eula.txt
+
+if [ ! -f server.properties ]; then
+  cat > server.properties <<EOF
+motd=the hollow's minecraft
+white-list=true
+enforce-whitelist=true
+enable-rcon=true
+rcon.port=25575
+rcon.password=$(openssl rand -hex 24)
+view-distance=12
+simulation-distance=10
+EOF
+fi
+chown -R minecraft:minecraft /srv/minecraft
+chmod 600 server.properties
+
+# ---- helper scripts
+cat > /usr/local/bin/mc-watch.py <<'WATCH'
+${watch_py}
+WATCH
+cat > /usr/local/bin/mc-backup.sh <<'BACKUP'
+${backup_sh}
+BACKUP
+cat > /usr/local/bin/import-world.sh <<'IMPORT'
+${import_sh}
+IMPORT
+chmod 755 /usr/local/bin/mc-watch.py /usr/local/bin/mc-backup.sh /usr/local/bin/import-world.sh
+cat > /etc/minecraft.env <<EOF
+BACKUP_BUCKET=${backup_bucket}
+IDLE_MINUTES=${idle_minutes}
+AWS_REGION=ca-central-1
+EOF
+
+# ---- systemd: the server, and a watcher that stops the machine when nobody plays
+cat > /etc/systemd/system/minecraft.service <<EOF
+[Unit]
+Description=Minecraft server
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/minecraft
+
+[Service]
+User=minecraft
+WorkingDirectory=/srv/minecraft
+EnvironmentFile=/etc/minecraft.env
+ExecStart=/usr/bin/java -Xms${memory_gb}G -Xmx${memory_gb}G -XX:+UseG1GC -jar server.jar nogui
+# Java saves the world on SIGTERM; give it time, then back up while the network is still up.
+TimeoutStopSec=300
+ExecStopPost=+/usr/local/bin/mc-backup.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/mc-watch.service <<EOF
+[Unit]
+Description=Stop the machine when Minecraft has been empty for a while
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/minecraft.env
+ExecStart=/usr/bin/python3 /usr/local/bin/mc-watch.py
+EOF
+
+cat > /etc/systemd/system/mc-watch.timer <<EOF
+[Unit]
+Description=Check for players every minute
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1min
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now minecraft.service mc-watch.timer
